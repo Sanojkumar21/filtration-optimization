@@ -37,13 +37,13 @@ v_w = st.sidebar.slider("Backwash volume vᵥ (m³/m²)", 0.05, 0.50, 0.15, 0.01
 
 st.sidebar.header("🔬 Head-Loss Parameters")
 alpha = st.sidebar.slider("Clean-bed coeff α (m·h/m)", 0.05, 1.0, 0.30, 0.01)
-beta = st.sidebar.slider("Development rate β (m·h/m³)", 0.001, 0.050, 0.008, 0.001,
+beta = st.sidebar.slider("Development rate β (m·h/m³)", 0.001, 0.050, 0.030, 0.001,
                           format="%.3f")
-H_a = st.sidebar.slider("Available head Hₐ (m)", 1.0, 10.0, 3.0, 0.1)
+H_a = st.sidebar.slider("Available head Hₐ (m)", 0.5, 10.0, 1.5, 0.1)
 
 st.sidebar.header("💰 Economic Parameters")
 Ce = st.sidebar.slider("Electricity price ($/kWh)", 0.02, 0.30, 0.10, 0.01)
-a_c = st.sidebar.slider("Construction cost ($/m²)", 100, 2000, 500, 50)
+a_c = st.sidebar.slider("Construction cost ($/m²)", 100, 5000, 3000, 50)
 i_rate = st.sidebar.slider("Interest rate", 0.03, 0.15, 0.08, 0.01)
 n_life = st.sidebar.slider("Plant life (years)", 5, 40, 20, 1)
 c_w = st.sidebar.slider("Backwash water cost ($/m³)", 0.1, 2.0, 0.5, 0.1)
