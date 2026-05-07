@@ -13,11 +13,14 @@ st.set_page_config(page_title="Filtration Optimization", layout="wide",
 # ── Custom CSS ──────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .main {background-color: #0e1117;}
-    .stMetric {background: linear-gradient(135deg, #1a1a2e, #16213e);
-               padding: 15px; border-radius: 12px; border: 1px solid #30475e;}
+    [data-testid="stMetric"] {
+        background: linear-gradient(135deg, #e94560, #c62a71);
+        padding: 18px; border-radius: 12px;
+    }
+    [data-testid="stMetric"] label { color: #ffffff !important; font-weight: 600 !important; }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; font-size: 1.6rem !important; }
     h1 {color: #e94560; text-align: center;}
-    h2, h3 {color: #0f9ef7;}
+    h2, h3 {color: #4361ee;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,7 +179,7 @@ fig.update_xaxes(title_text="Hₐ (m)", row=1, col=2)
 fig.update_yaxes(title_text="Cost ($/yr)", row=1, col=2)
 fig.update_layout(height=500, template='plotly_dark',
                   margin=dict(t=40, b=40), legend=dict(x=0.01, y=0.99))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ── Plot 2: Cost Breakdown ─────────────────────────────────────
 st.markdown("## 📊 Cost Breakdown")
@@ -201,7 +204,7 @@ fig2.add_trace(go.Bar(x=scenarios, y=bw_vals, name='Backwash',
 fig2.update_layout(barmode='stack', template='plotly_dark', height=400,
                    yaxis_title='Annual Cost ($/yr)',
                    title='Cost Breakdown Comparison')
-st.plotly_chart(fig2, use_container_width=True)
+st.plotly_chart(fig2, width="stretch")
 
 # ── Footer ─────────────────────────────────────────────────────
 st.markdown("---")
