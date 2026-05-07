@@ -17,7 +17,7 @@ st.markdown("""
         background: linear-gradient(135deg, #e94560, #c62a71);
         padding: 18px; border-radius: 12px;
     }
-    [data-testid="stMetric"] label { color: #ffe0e6 !important; }
+    [data-testid="stMetric"] label { color: #ffffff !important; font-weight: 600 !important; }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; font-size: 1.6rem !important; }
     h1 {color: #e94560; text-align: center;}
     h2, h3 {color: #4361ee;}
@@ -68,18 +68,34 @@ def head_loss(v, Vf):
 def cost_scipy(x):
     return total_cost(x[0], x[1]) * Qp
 
-# Unconstrained
+# Unconstrained (multi-start to find global minimum)
 bounds = [(1.0, 30.0), (10.0, 1000.0)]
-res_unc = minimize(cost_scipy, [8, 200], method='L-BFGS-B', bounds=bounds)
-v_unc, Vf_unc = res_unc.x
-C_unc = res_unc.fun
+best_unc = None
+for x0 in [[2, 50], [5, 100], [8, 200], [15, 400], [20, 600]]:
+    res = minimize(cost_scipy, x0, method='L-BFGS-B', bounds=bounds)
+    if best_unc is None or res.fun < best_unc.fun:
+        best_unc = res
+v_unc, Vf_unc = best_unc.x
+C_unc = best_unc.fun
 hT_unc = head_loss(v_unc, Vf_unc)
 
-# Constrained
+# Constrained (start from unconstrained solution + multi-start)
 con = {'type': 'ineq', 'fun': lambda x: H_a - head_loss(x[0], x[1])}
-res_con = minimize(cost_scipy, [8, 200], method='SLSQP', bounds=bounds, constraints=con)
-v_con, Vf_con = res_con.x
-C_con = res_con.fun
+best_con = None
+starts = [[v_unc, Vf_unc], [2, 50], [5, 100], [8, 200], [15, 400]]
+for x0 in starts:
+    res = minimize(cost_scipy, x0, method='SLSQP', bounds=bounds, constraints=con)
+    # Only accept successful optimizations that find feasible solutions
+    if res.success:
+        if best_con is None or res.fun < best_con.fun:
+            best_con = res
+
+# Fallback if all SLSQP runs failed (shouldn't happen with valid parameters)
+if best_con is None:
+    best_con = res
+
+v_con, Vf_con = best_con.x
+C_con = best_con.fun
 hT_con = head_loss(v_con, Vf_con)
 
 # ── Results Display ────────────────────────────────────────────
