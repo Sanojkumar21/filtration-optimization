@@ -17,7 +17,7 @@ st.markdown("""
         background: linear-gradient(135deg, #e94560, #c62a71);
         padding: 18px; border-radius: 12px;
     }
-    [data-testid="stMetric"] label { color: #ffffff !important; font-weight: 600 !important; }
+    [data-testid="stMetric"] label { color: #ffe0e6 !important; }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; font-size: 1.6rem !important; }
     h1 {color: #e94560; text-align: center;}
     h2, h3 {color: #4361ee;}
@@ -68,27 +68,18 @@ def head_loss(v, Vf):
 def cost_scipy(x):
     return total_cost(x[0], x[1]) * Qp
 
-# Unconstrained (multi-start to find global minimum)
+# Unconstrained
 bounds = [(1.0, 30.0), (10.0, 1000.0)]
-best_unc = None
-for x0 in [[2, 50], [5, 100], [8, 200], [15, 400], [20, 600]]:
-    res = minimize(cost_scipy, x0, method='L-BFGS-B', bounds=bounds)
-    if best_unc is None or res.fun < best_unc.fun:
-        best_unc = res
-v_unc, Vf_unc = best_unc.x
-C_unc = best_unc.fun
+res_unc = minimize(cost_scipy, [8, 200], method='L-BFGS-B', bounds=bounds)
+v_unc, Vf_unc = res_unc.x
+C_unc = res_unc.fun
 hT_unc = head_loss(v_unc, Vf_unc)
 
-# Constrained (start from unconstrained solution + multi-start)
+# Constrained
 con = {'type': 'ineq', 'fun': lambda x: H_a - head_loss(x[0], x[1])}
-best_con = None
-starts = [[v_unc, Vf_unc], [2, 50], [5, 100], [8, 200], [15, 400]]
-for x0 in starts:
-    res = minimize(cost_scipy, x0, method='SLSQP', bounds=bounds, constraints=con)
-    if best_con is None or res.fun < best_con.fun:
-        best_con = res
-v_con, Vf_con = best_con.x
-C_con = best_con.fun
+res_con = minimize(cost_scipy, [8, 200], method='SLSQP', bounds=bounds, constraints=con)
+v_con, Vf_con = res_con.x
+C_con = res_con.fun
 hT_con = head_loss(v_con, Vf_con)
 
 # ── Results Display ────────────────────────────────────────────
@@ -137,35 +128,43 @@ with tab2:
 # ── Plot 1: Cost Contour ───────────────────────────────────────
 st.markdown("## 🗺️ Cost Landscape")
 
-v_range = np.linspace(1, 25, 150)
-Vf_range = np.linspace(10, 600, 150)
+v_range = np.linspace(0.5, 26, 150)
+Vf_range = np.linspace(5, 620, 150)
 V, VF = np.meshgrid(v_range, Vf_range)
 Z = total_cost(V, VF) * Qp
+# Cap the maximum cost for plotting to ensure contour lines are visible near the optimum
+Z_plot = np.clip(Z, a_min=None, a_max=Z.min() * 2.5)
 
 fig = make_subplots(rows=1, cols=2, subplot_titles=[
     "Cost Contour with Constraint", "Sensitivity to Available Head Hₐ"],
     horizontal_spacing=0.12)
 
 fig.add_trace(go.Contour(
-    z=Z, x=v_range, y=Vf_range,
-    colorscale='Viridis', ncontours=25,
-    contours=dict(showlabels=True, labelfont=dict(size=9)),
+    z=Z_plot, x=v_range, y=Vf_range,
+    colorscale='Viridis', ncontours=30,
+    contours=dict(showlabels=True, labelfont=dict(size=10, color='white')),
     colorbar=dict(title="$/yr", x=0.45),
-    showscale=True
+    showscale=True,
+    hovertemplate='v: %{x:.2f} m/h<br>Vf: %{y:.1f} m³/m²<br>Cost: $%{z:,.0f}/yr<extra></extra>'
 ), row=1, col=1)
 
 # Constraint boundary
-v_bnd = np.linspace(0.5, H_a / alpha - 0.1, 200)
+v_bnd = np.linspace(0.5, H_a / alpha - 0.01, 200)
 Vf_bnd = (H_a - alpha * v_bnd) / (beta * v_bnd)
-fig.add_trace(go.Scatter(x=v_bnd, y=Vf_bnd, mode='lines',
+# Filter Vf_bnd to reasonable ranges to avoid plotting artifacts
+valid_idx = Vf_bnd <= 1000
+fig.add_trace(go.Scatter(x=v_bnd[valid_idx], y=Vf_bnd[valid_idx], mode='lines',
     line=dict(color='red', width=3), name=f'h_T = Hₐ = {H_a}m'), row=1, col=1)
 
+# Unconstrained Opt: Larger White Star
 fig.add_trace(go.Scatter(x=[v_unc], y=[Vf_unc], mode='markers',
-    marker=dict(size=14, color='white', symbol='star', line=dict(width=2, color='black')),
-    name='Unconstrained'), row=1, col=1)
+    marker=dict(size=20, color='white', symbol='star', line=dict(width=2, color='black')),
+    name='Unconstrained', hovertemplate='Unconstrained<br>v: %{x:.2f}<br>Vf: %{y:.1f}<extra></extra>'), row=1, col=1)
+
+# Constrained Opt: Smaller Red Star (so it fits inside the white star if they overlap)
 fig.add_trace(go.Scatter(x=[v_con], y=[Vf_con], mode='markers',
-    marker=dict(size=14, color='red', symbol='star', line=dict(width=2, color='black')),
-    name='Constrained'), row=1, col=1)
+    marker=dict(size=10, color='red', symbol='star', line=dict(width=1, color='black')),
+    name='Constrained', hovertemplate='Constrained<br>v: %{x:.2f}<br>Vf: %{y:.1f}<extra></extra>'), row=1, col=1)
 
 # Sensitivity
 H_vals = np.linspace(1.5, 8.0, 40)
