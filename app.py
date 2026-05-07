@@ -148,20 +148,21 @@ v_range = np.linspace(0.5, 26, 150)
 Vf_range = np.linspace(5, 620, 150)
 V, VF = np.meshgrid(v_range, Vf_range)
 Z = total_cost(V, VF) * Qp
-# Cap the maximum cost for plotting to ensure contour lines are visible near the optimum
-Z_plot = np.clip(Z, a_min=None, a_max=Z.min() * 2.5)
+# Use log10 scale for the contour to handle the massive cost walls smoothly
+Z_plot = np.log10(Z)
 
 fig = make_subplots(rows=1, cols=2, subplot_titles=[
-    "Cost Contour with Constraint", "Sensitivity to Available Head Hₐ"],
+    "Cost Contour with Constraint (Log Scale)", "Sensitivity to Available Head Hₐ"],
     horizontal_spacing=0.12)
 
 fig.add_trace(go.Contour(
     z=Z_plot, x=v_range, y=Vf_range,
-    colorscale='Viridis', ncontours=30,
-    contours=dict(showlabels=True, labelfont=dict(size=10, color='white')),
-    colorbar=dict(title="$/yr", x=0.45),
+    customdata=Z,
+    colorscale='Viridis', ncontours=35,
+    contours=dict(showlabels=False),
+    colorbar=dict(title="Log10($/yr)", x=0.45),
     showscale=True,
-    hovertemplate='v: %{x:.2f} m/h<br>Vf: %{y:.1f} m³/m²<br>Cost: $%{z:,.0f}/yr<extra></extra>'
+    hovertemplate='v: %{x:.2f} m/h<br>Vf: %{y:.1f} m³/m²<br>Cost: $%{customdata:,.0f}/yr<extra></extra>'
 ), row=1, col=1)
 
 # Constraint boundary
